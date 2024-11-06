@@ -1,108 +1,207 @@
-[![HOOMD-blue](sphinx-doc/hoomdblue-logo-horizontal.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/)
+[toc]
 
-[![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://hoomd-blue.readthedocs.io/en/latest/citing.html)
-[![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![GitHub Actions](https://github.com/glotzerlab/hoomd-blue/actions/workflows//test.yaml/badge.svg?branch=trunk-patch)](https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yaml)
-[![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/latest.svg)](https://hoomd-blue.readthedocs.io/en/latest/?badge=latest)
-[![Contributors](https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/latest/credits.html)
-[![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
+# Set up HOOMD-blue benchmark
 
-**HOOMD-blue** is a Python package that runs simulations of particle systems on CPUs and GPUs. It
-performs hard particle Monte Carlo simulations of a variety of shape classes and molecular dynamics
-simulations of particles with a range of pair, bond, angle, and other potentials. Many features are
-targeted at the soft matter research community, though the code is general and capable of many
-types of particle simulations.
+## Clone HOOMD-blue codes
 
-## Resources
+The following commands
 
-- [Documentation](https://hoomd-blue.readthedocs.io/):
-  Tutorial, full Python API description, and usage information.
-- [Citing HOOMD-blue](https://hoomd-blue.readthedocs.io/en/latest/citing.html)
-  How to cite the code.
-- [Installation guide](INSTALLING.rst):
-  Instructions for installing **HOOMD-blue** binaries.
-- [Compilation guide](BUILDING.rst):
-  Instructions for compiling **HOOMD-blue**.
-- [HOOMD-blue discussion board](https://github.com/glotzerlab/hoomd-blue/discussions/):
-  Ask the **HOOMD-blue** user community for help.
-- [HOOMD-blue website](https://glotzerlab.engin.umich.edu/hoomd-blue/):
-  Additional information and publications.
-- [HOOMD-blue benchmark scripts](https://github.com/glotzerlab/hoomd-benchmarks):
-  Scripts to evaluate the performance of HOOMD-blue simulations.
-- [HOOMD-blue validation tests](https://github.com/glotzerlab/hoomd-validation):
-  Scripts to validate that HOOMD-blue performs accurate simulations.
+1. Created a workspace directory for HOOMD-blue under `scratch` directory
+2. Clone `HOOMD-blue` which we modified and `hoomd-benchmarks` code to the work directory
+4. Create the `initial_configuration_cache` directory to hold the initial condition files
+4. Copy the initial configuration file prepared at `/scracth/public` to the `initial_configuration_cache` directory
 
-## Related tools
-
-- [freud](https://freud.readthedocs.io/):
-  Analyze HOOMD-blue simulation results with the **freud** Python library.
-- [signac](https://signac.io/):
-  Manage your workflow with **signac**.
-
-## Example scripts
-
-These examples demonstrate some of the Python API.
-
-Hard particle Monte Carlo:
-```python
-import hoomd
-
-mc = hoomd.hpmc.integrate.ConvexPolyhedron()
-mc.shape['octahedron'] = dict(vertices=[
-    (-0.5, 0, 0),
-    (0.5, 0, 0),
-    (0, -0.5, 0),
-    (0, 0.5, 0),
-    (0, 0, -0.5),
-    (0, 0, 0.5),
-])
-
-cpu = hoomd.device.CPU()
-sim = hoomd.Simulation(device=cpu, seed=20)
-sim.operations.integrator = mc
-# The tutorial describes how to construct an initial configuration 'init.gsd'.
-sim.create_state_from_gsd(filename='init.gsd')
-
-sim.run(1e5)
+```bash
+mkdir ${HOME}/scratch/workdir/hoomd -p
+git -C ${HOME}/scratch/workdir/hoomd clone https://github.com/Satsuki-Rin/hoomd-blue  --recursive
+time git -C ${HOME}/scratch/workdir/hoomd clone https://github.com/glotzerlab/hoomd-benchmarks
+mkdir -p ${HOME}/scratch/workdir/hoomd/initial_configuration_cache
+cp /scratch/public/2024-apac-hpc-ai/hoomd/initial_configuration_cache/hard_sphere_200000_1.0_3.gsd \
+${HOME}/scratch/workdir/hoomd/initial_configuration_cache
 ```
 
-Molecular dynamics:
-```python
-import hoomd
+## Create Python 3 environment
 
-cell = hoomd.md.nlist.Cell(buffer=0.4)
-lj = hoomd.md.pair.LJ(nlist=cell)
-lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
-lj.r_cut[('A', 'A')] = 2.5
+The following commands
 
-integrator = hoomd.md.Integrator(dt=0.005)
-integrator.forces.append(lj)
-bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
-nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
-integrator.methods.append(nvt)
+1. Set up a Python 3 Conda environment
+2. Install latest `pybind11(2.13.5)` with PIP, to fix `pybind11 version(v2.10.1)` issue caused by wrong HOOMD-blue prerequisite list in the HOOMD-blue git code
+3. Run`install-prereq-headers.py` scripts that provided by HOOMD-blue developers
+4. Install `GSD` and `numpy`
 
-gpu = hoomd.device.GPU()
-sim = hoomd.Simulation(device=gpu)
-sim.operations.integrator = integrator
-# The tutorial describes how to construct an initial configuration 'init.gsd'.
-sim.create_state_from_gsd(filename='init.gsd')
-sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
-
-sim.run(1e5)
+```bash
+conda create -p ${HOME}/scratch/workdir/hoomd/hoomd.py312 python=3.12 -y
+${HOME}/scratch/workdir/hoomd/hoomd.py312/bin/pip install pybind11
+${HOME}/scratch/workdir/hoomd/hoomd.py312/bin/python3 ${HOME}/scratch/workdir/hoomd/hoomd-blue/install-prereq-headers.py -y
+${HOME}/scratch/workdir/hoomd/hoomd.py312/bin/pip install numpy gsd
 ```
 
-## Change log
+## Build HOOMD-blue with IntelMPI
 
-[CHANGELOG.rst](CHANGELOG.rst) contains the full change log.
+The following commands
 
-## Contributing to HOOMD-blue
+1. Check available MPI libraries that pre-built by the Supercomputer administrator
+2. Load IntelMPI environment variables
+3. Configure the scripts for building HOOMD-blue with IntelMPI and pip-installed `pybind11`
+4. Build the Python package
+5. Validate the built Python package
 
-Contributions are welcomed via [pull requests](https://github.com/glotzerlab/hoomd-blue/pulls).
-Please report bugs and suggest feature enhancements via the [issue
-tracker](https://github.com/glotzerlab/hoomd-blue/issues). See [CONTRIBUTING.rst](CONTRIBUTING.rst)
-and [ARCHITECTURE.md](ARCHITECTURE.md) for more information.
+```bash
+#!/bin/bash
+#PBS -j oe
+#PBS -M 1652074432@qq.com
+#PBS -m abe
+#PBS -P qa09
+#PBS -l ngpus=0
+#PBS -l walltime=00:10:00
+##PBS -l other=hyperthread
+#-report-bindings \
 
-## License
+module purge
+module load intel-compiler-llvm/2024.2.0
+module load intel-mkl/2024.2.0
+module load intel-mpi/2021.13.0
 
-**HOOMD-blue** is available under the [3-clause BSD license](LICENSE).
+time PATH=${HOME}/scratch/workdir/hoomd/hoomd.py312/bin:$PATH \
+cmake \
+-B ${HOME}/scratch/workdir/hoomd/build/hoomd-intelmpi \
+-S ${HOME}/scratch/workdir/hoomd/hoomd-blue \
+-D ENABLE_MPI=on \
+-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native \
+-D MPI_HOME=/apps/intel-tools/intel-mpi/2021.13.0 \
+-D cereal_DIR=${HOME}/scratch/workdir/hoomd/hoomd.py312/lib64/cmake/cereal \
+-D Eigen3_DIR=${HOME}/scratch/workdir/hoomd/hoomd.py312/share/eigen3/cmake \
+-D pybind11_DIR=${HOME}/scratch/workdir/hoomd/hoomd.py312/lib/python3.12/site-packages/pybind11/share/cmake/pybind11
+-DCMAKE_CXX_FLAGS="-O3 -xHost -DMKL_ILP64 -qmkl-ilp64=parallel -fiopenmp" \
+-DCMAKE_C_FLAGS="-O3 -xHost -DMKL_ILP64 -qmkl-ilp64=parallel -fiopenmp"
+
+time cmake --build ${HOME}/scratch/workdir/hoomd/build/hoomd-intelmpi -j 48
+
+# Validate the built package by loading it with Python
+PYTHONPATH=${HOME}/scratch/workdir/hoomd/build/hoomd-intelmpi \
+${HOME}/scratch/workdir/hoomd/hoomd.py312/bin/python \
+-m hoomd
+# python: No module named hoomd.__main__; 'hoomd' is a package and cannot be directly executed
+```
+
+# Run the Task 
+
+## Create PBS bash script
+
+Create a shell script file, `${HOME}/run/run.sh`, with following contents
+
+```bash
+#!/bin/bash
+#PBS -j oe
+#PBS -M 1652074432@qq.com
+#PBS -m abe
+#PBS -P qa09
+#PBS -l ngpus=0
+#PBS -l walltime=00:10:00
+##PBS -l other=hyperthread
+#-report-bindings \
+
+module purge
+module load intel-compiler-llvm/2024.2.0
+module load intel-mkl/2024.2.0
+module load intel-mpi/2021.13.0
+
+hosts=$(sort -u ${PBS_NODEFILE} | paste -sd ',')
+
+cmd="time mpirun \
+-host ${hosts} \
+-wdir ${HOME}/scratch/workdir/hoomd \
+-ppn 48 \
+--env PYTHONPATH ${HOME}/scratch/workdir/hoomd/build/hoomd-intelmpi:${HOME}/scratch/workdir/hoomd/hoomd-benchmarks \
+${HOME}/scratch/workdir/hoomd/hoomd.py312/bin/python \
+-m hoomd_benchmarks.md_pair_wca \
+--device CPU -v \
+-N ${N} --repeat ${repeat} \
+--warmup_steps ${warmup_steps} --benchmark_steps ${benchmark_steps}"
+
+echo ${cmd}
+
+exec ${cmd}
+date
+```
+
+## When you run with 8 nodes
+Please modify the file 'md_pair.py' in hoomd-benchmarks/hoomd_benchmarks.
+Change DEFAULT_BUFFER = 0.4 to DEFAULT_BUFFER = 0.5,and you'll get better performance.
+
+## Submit the job script to PBS
+
+The following command
+
+1. Define the number of nodes as an environment variable to set the job scale.
+2. Submit the PBS job script to normal queue(CPU queue)
+
+Use PBS to submit the build.sh
+```bash
+cd ${HOME}/run
+
+nodes=1 walltime=00:10:00 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+build.sh'
+```
+
+Use PBS to run
+```bash
+cd ${HOME}/run
+
+nodes=1 walltime=00:10:00 \
+warmup_steps=40000 benchmark_steps=80000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+
+nodes=2 walltime=00:10:00 \
+warmup_steps=40000 benchmark_steps=80000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+
+nodes=4 walltime=00:00:300 \
+warmup_steps=40000 benchmark_steps=80000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+
+nodes=8 walltime=00:00:300 \
+warmup_steps=40000 benchmark_steps=80000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+
+nodes=16 walltime=00:00:300 \
+warmup_steps=10000 benchmark_steps=160000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+
+nodes=32 walltime=00:00:300 \
+warmup_steps=10000 benchmark_steps=320000 repeat=1 N=200000 \
+bash -c \
+'qsub -V \
+-l walltime=${walltime},ncpus=$((48*nodes)),mem=$((48*nodes*1))gb \
+-N hoomd.nodes${nodes}.WS${warmup_steps}.BS${benchmark_steps} \
+run.sh'
+```
+
+Read the results
+```bash
+grep "time steps per second" ${HOME}/run/hoomd*.* |sort  --version-sort
+```
