@@ -217,7 +217,8 @@ void Integrator::computeNetForce(uint64_t timestep)
             ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
 
             size_t virial_pitch = h_virial_array.getPitch();
-            for (unsigned int j = 0; j < nparticles; j++)
+            #pragma omp simd
+            for (unsigned int j = 0; j < nparticles; ++j)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
                 h_net_force.data[j].y += h_force.data[j].y;
@@ -229,17 +230,22 @@ void Integrator::computeNetForce(uint64_t timestep)
                 h_net_torque.data[j].z += h_torque.data[j].z;
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
-                for (unsigned int k = 0; k < 6; k++)
-                    {
-                    h_net_virial.data[k * net_virial_pitch + j]
-                        += h_virial.data[k * virial_pitch + j];
-                    }
+                h_net_virial.data[0 * net_virial_pitch + j] += h_virial.data[0 * virial_pitch + j];  
+                h_net_virial.data[1 * net_virial_pitch + j] += h_virial.data[1 * virial_pitch + j];  
+                h_net_virial.data[2 * net_virial_pitch + j] += h_virial.data[2 * virial_pitch + j];  
+                h_net_virial.data[3 * net_virial_pitch + j] += h_virial.data[3 * virial_pitch + j];  
+                h_net_virial.data[4 * net_virial_pitch + j] += h_virial.data[4 * virial_pitch + j];  
+                h_net_virial.data[5 * net_virial_pitch + j] += h_virial.data[5 * virial_pitch + j];
+
                 }
 
-            for (unsigned int k = 0; k < 6; k++)
-                {
-                external_virial[k] += force->getExternalVirial(k);
-                }
+            external_virial[0] += force->getExternalVirial(0);  
+            external_virial[1] += force->getExternalVirial(1);  
+            external_virial[2] += force->getExternalVirial(2);  
+            external_virial[3] += force->getExternalVirial(3);  
+            external_virial[4] += force->getExternalVirial(4);  
+            external_virial[5] += force->getExternalVirial(5);
+
 
             external_energy += force->getExternalEnergy();
             }

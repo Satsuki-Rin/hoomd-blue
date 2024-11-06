@@ -2917,6 +2917,7 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
 
         // set all rtags of ptls with comm_flag != 0 to NOT_LOCAL and count removed particles
         unsigned int N = getN();
+        #pragma omp simd
         for (unsigned int i = 0; i < N; ++i)
             if (h_comm_flags.data[i])
                 {
@@ -3019,6 +3020,7 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
         unsigned int n = 0;
         unsigned int m = 0;
         unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
+        #pragma omp simd
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
             unsigned int tag = h_tag.data[i];
@@ -3097,6 +3099,7 @@ void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
 
         // recompute rtags (particles have moved)
+        #pragma omp simd
         for (unsigned int idx = 0; idx < m_nparticles; ++idx)
             {
             // reset rtag of this ptl
