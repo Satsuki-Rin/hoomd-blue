@@ -188,8 +188,12 @@ void Integrator::computeNetForce(uint64_t timestep)
         memset((void*)h_net_virial.data, 0, sizeof(Scalar) * net_virial.getNumElements());
         memset((void*)h_net_torque.data, 0, sizeof(Scalar4) * net_torque.getNumElements());
 
-        for (unsigned int i = 0; i < 6; ++i)
-            external_virial[i] = Scalar(0.0);
+        external_virial[0] = Scalar(0.0);  
+        external_virial[1] = Scalar(0.0);  
+        external_virial[2] = Scalar(0.0);  
+        external_virial[3] = Scalar(0.0);  
+        external_virial[4] = Scalar(0.0);  
+        external_virial[5] = Scalar(0.0);
 
         external_energy = Scalar(0.0);
 
@@ -251,10 +255,12 @@ void Integrator::computeNetForce(uint64_t timestep)
             }
         }
 
-    for (unsigned int k = 0; k < 6; k++)
-        {
-        m_pdata->setExternalVirial(k, external_virial[k]);
-        }
+        m_pdata->setExternalVirial(0, external_virial[0]);  
+        m_pdata->setExternalVirial(1, external_virial[1]);  
+        m_pdata->setExternalVirial(2, external_virial[2]);  
+        m_pdata->setExternalVirial(3, external_virial[3]);  
+        m_pdata->setExternalVirial(4, external_virial[4]);  
+        m_pdata->setExternalVirial(5, external_virial[5]);
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -319,25 +325,31 @@ void Integrator::computeNetForce(uint64_t timestep)
                 h_net_torque.data[j].z += h_torque.data[j].z;
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
-                for (unsigned int k = 0; k < 6; k++)
-                    {
-                    h_net_virial.data[k * net_virial_pitch + j]
-                        += h_virial.data[k * virial_pitch + j];
-                    }
+                h_net_virial.data[0 * net_virial_pitch + j] += h_virial.data[0 * virial_pitch + j];  
+                h_net_virial.data[1 * net_virial_pitch + j] += h_virial.data[1 * virial_pitch + j];  
+                h_net_virial.data[2 * net_virial_pitch + j] += h_virial.data[2 * virial_pitch + j];  
+                h_net_virial.data[3 * net_virial_pitch + j] += h_virial.data[3 * virial_pitch + j];  
+                h_net_virial.data[4 * net_virial_pitch + j] += h_virial.data[4 * virial_pitch + j];  
+                h_net_virial.data[5 * net_virial_pitch + j] += h_virial.data[5 * virial_pitch + j];
                 }
-            for (unsigned int k = 0; k < 6; k++)
-                {
-                external_virial[k] += constraint_force->getExternalVirial(k);
-                }
+                    external_virial[0] += constraint_force->getExternalVirial(0);  
+                    external_virial[1] += constraint_force->getExternalVirial(1);  
+                    external_virial[2] += constraint_force->getExternalVirial(2);  
+                    external_virial[3] += constraint_force->getExternalVirial(3);  
+                    external_virial[4] += constraint_force->getExternalVirial(4);  
+                    external_virial[5] += constraint_force->getExternalVirial(5);
 
             external_energy += constraint_force->getExternalEnergy();
             }
         }
 
-    for (unsigned int k = 0; k < 6; k++)
-        {
-        m_pdata->setExternalVirial(k, external_virial[k]);
-        }
+        m_pdata->setExternalVirial(0, external_virial[0]);  
+        m_pdata->setExternalVirial(1, external_virial[1]);  
+        m_pdata->setExternalVirial(2, external_virial[2]);  
+        m_pdata->setExternalVirial(3, external_virial[3]);  
+        m_pdata->setExternalVirial(4, external_virial[4]);  
+        m_pdata->setExternalVirial(5, external_virial[5]);
+
 
     m_pdata->setExternalEnergy(external_energy);
     }
@@ -388,8 +400,13 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         assert(nparticles <= net_torque.getNumElements());
 
         // zero external virial
-        for (unsigned int i = 0; i < 6; ++i)
-            external_virial[i] = Scalar(0.0);
+        external_virial[0] = Scalar(0.0);  
+        external_virial[1] = Scalar(0.0);  
+        external_virial[2] = Scalar(0.0);  
+        external_virial[3] = Scalar(0.0);  
+        external_virial[4] = Scalar(0.0);  
+        external_virial[5] = Scalar(0.0);
+
 
         external_energy = Scalar(0.0);
 
@@ -570,13 +587,22 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     // add up external virials and energies
     for (const auto& force : m_forces)
         {
-        for (unsigned int k = 0; k < 6; k++)
-            external_virial[k] += force->getExternalVirial(k);
+        external_virial[0] += force->getExternalVirial(0);  
+        external_virial[1] += force->getExternalVirial(1);  
+        external_virial[2] += force->getExternalVirial(2);  
+        external_virial[3] += force->getExternalVirial(3);  
+        external_virial[4] += force->getExternalVirial(4);  
+        external_virial[5] += force->getExternalVirial(5);
+
         external_energy += force->getExternalEnergy();
         }
 
-    for (unsigned int k = 0; k < 6; k++)
-        m_pdata->setExternalVirial(k, external_virial[k]);
+    m_pdata->setExternalVirial(0, external_virial[0]);  
+    m_pdata->setExternalVirial(1, external_virial[1]);  
+    m_pdata->setExternalVirial(2, external_virial[2]);  
+    m_pdata->setExternalVirial(3, external_virial[3]);  
+    m_pdata->setExternalVirial(4, external_virial[4]);  
+    m_pdata->setExternalVirial(5, external_virial[5]);
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -784,15 +810,21 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     // add up external virials
     for (const auto& constraint_force : m_constraint_forces)
         {
-        for (unsigned int k = 0; k < 6; k++)
-            {
-            external_virial[k] += constraint_force->getExternalVirial(k);
-            }
+        external_virial[0] += constraint_force->getExternalVirial(0);  
+        external_virial[1] += constraint_force->getExternalVirial(1);  
+        external_virial[2] += constraint_force->getExternalVirial(2);  
+        external_virial[3] += constraint_force->getExternalVirial(3);  
+        external_virial[4] += constraint_force->getExternalVirial(4);  
+        external_virial[5] += constraint_force->getExternalVirial(5);
         external_energy += constraint_force->getExternalEnergy();
         }
 
-    for (unsigned int k = 0; k < 6; k++)
-        m_pdata->setExternalVirial(k, external_virial[k]);
+    m_pdata->setExternalVirial(0, external_virial[0]);  
+    m_pdata->setExternalVirial(1, external_virial[1]);  
+    m_pdata->setExternalVirial(2, external_virial[2]);  
+    m_pdata->setExternalVirial(3, external_virial[3]);  
+    m_pdata->setExternalVirial(4, external_virial[4]);  
+    m_pdata->setExternalVirial(5, external_virial[5]);
 
     m_pdata->setExternalEnergy(external_energy);
     }
