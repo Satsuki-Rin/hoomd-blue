@@ -624,7 +624,7 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    for (int i = 0; i < (int)m_pdata->getN(); ++i)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -651,7 +651,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         // loop over all of the neighbors of this particle
         const size_t myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
-        for (unsigned int k = 0; k < size; k++)
+        #pragma omp simd
+        for (unsigned int k = 0; k < size; ++k)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[myHead + k];

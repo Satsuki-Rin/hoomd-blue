@@ -36,6 +36,7 @@ NeighborListBinned::~NeighborListBinned()
 void NeighborListBinned::buildNlist(uint64_t timestep)
     {
     // update the cell list size if needed
+	const Scalar Zero = Scalar(0.0);
     if (m_update_cell_size)
         {
         Scalar rmax = getMaxRCut() + m_r_buff;
@@ -92,9 +93,10 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
 
-    for (int i = 0; i < (int)nparticles; i++)
+    for (int i = 0; i < (int)nparticles; ++i)
         {
         unsigned int cur_n_neigh = 0;
+	unsigned int unsigned_i = (unsigned int)i;
 
         const Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
@@ -121,13 +123,15 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         unsigned int my_cell = ci(ib, jb, kb);
 
         // loop through all neighboring bins
-        for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
+        unsigned lim_cur_adj = cadji.getW();
+        #pragma omp simd
+        for (unsigned int cur_adj = 0; cur_adj < lim_cur_adj; ++cur_adj)
             {
             unsigned int neigh_cell = h_cell_adj.data[cadji(cur_adj, my_cell)];
 
             // check against all the particles in that neighboring bin to see if it is a neighbor
             unsigned int size = h_cell_size.data[neigh_cell];
-            for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
+            for (unsigned int cur_offset = 0; cur_offset < size; ++cur_offset)
                 {
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
@@ -141,9 +145,17 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                 // (1) they are the same particle, or
                 // (2) the r_cut(i,j) indicates to skip, or
                 // (3) they are in the same body
-                bool excluded = ((i == (int)cur_neigh) || (r_cut <= Scalar(0.0)));
+                
+		//bool excluded = ((i == (int)cur_neigh) || (r_cut <= Scalar(0.0)));
+		bool excluded = (unsigned_i == cur_neigh);
+        if(!excluded) excluded = (r_cut <= Zero);                
+
+
+		/*if (m_filter_body && body_i != NO_BODY)
+                    excluded = excluded | (body_i == h_body.data[cur_neigh]);*/
+
                 if (m_filter_body && body_i != NO_BODY)
-                    excluded = excluded | (body_i == h_body.data[cur_neigh]);
+                    continue;  
                 if (excluded)
                     continue;
 
