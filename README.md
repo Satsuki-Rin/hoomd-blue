@@ -1,5 +1,5 @@
-[toc]
-
+# This is a forked version for 2024 APAC HPC-AI Competition
+# Here's how it compiles and runs.
 # Set up HOOMD-blue benchmark
 
 ## Clone HOOMD-blue codes
